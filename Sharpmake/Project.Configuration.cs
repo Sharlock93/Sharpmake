@@ -2893,6 +2893,7 @@ namespace Sharpmake
                 foreach (var customFileBuildStep in CustomFileBuildSteps)
                 {
                     customFileBuildStep.Resolve(resolver);
+
                     Util.ResolvePath(Project.SourceRootPath, ref customFileBuildStep.KeyInput);
 
                     if(!customFileBuildStep.UseExecutableFromSystemPath)

@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Sharpmake.Generators\Sharpmake.Generators.csproj" />
     <ProjectReference Include="..\Sharpmake.Platforms\Sharpmake.CommonPlatforms\Sharpmake.CommonPlatforms.csproj" />
+    <ProjectReference Include="..\Sharpmake.Platforms\Sharpmake.PSVita\Sharpmake.PSVita.csproj" />
     <ProjectReference Include="..\Sharpmake\Sharpmake.csproj" />
   </ItemGroup>
 

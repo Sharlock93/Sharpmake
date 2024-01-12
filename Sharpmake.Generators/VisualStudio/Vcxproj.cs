@@ -180,11 +180,8 @@ namespace Sharpmake.Generators.VisualStudio
                     relativeBuildStep.AdditionalInputs.Add(relativeBuildStep.Executable);
                 }
                 // Build the command.
-                string command = string.Format(
-                    "\"{0}\" {1}",
-                    relativeBuildStep.Executable,
-                    relativeBuildStep.ExecutableArguments
-                );
+                string cmdFormat = relativeBuildStep.Executable.Length > 0 ? "\"{0}\" {1}" : "{0} {1}";
+                string command = string.Format( cmdFormat, relativeBuildStep.Executable, relativeBuildStep.ExecutableArguments );
 
                 command = Util.EscapeXml(command) + EventSeparator;
                 CombinedCustomFileBuildStep combinedCustomBuildStep;
