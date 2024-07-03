@@ -13,7 +13,9 @@ namespace Sharpmake
                 {
                     [Default]
                     Gcc,
-                    Clang
+                    GccPlusPlus,
+                    Clang,
+                    ClangPlusPlus
                 }
             }
 
