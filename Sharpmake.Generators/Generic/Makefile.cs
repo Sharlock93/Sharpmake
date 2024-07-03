@@ -419,9 +419,11 @@ namespace Sharpmake.Generators.Generic
 
             // CompilerToUse
             SelectOption(conf,
-                Options.Option(Options.Makefile.General.PlatformToolset.Gcc, () => { options["CompilerToUse"] = "g++"; }),
-                Options.Option(Options.Makefile.General.PlatformToolset.Clang, () => { options["CompilerToUse"] = "clang++"; })
-                );
+                Options.Option(Options.Makefile.General.PlatformToolset.Gcc, () => { options["CompilerToUse"] = "gcc"; }),
+                Options.Option(Options.Makefile.General.PlatformToolset.Clang, () => { options["CompilerToUse"] = "clang"; }),
+                Options.Option(Options.Makefile.General.PlatformToolset.GccPlusPlus, () => { options["CompilerToUse"] = "g++"; }),
+                Options.Option(Options.Makefile.General.PlatformToolset.ClangPlusPlus, () => { options["CompilerToUse"] = "clang++"; })
+             );
 
             // IntermediateDirectory
             options["IntermediateDirectory"] = PathMakeUnix(Util.PathGetRelative(projectFileInfo.DirectoryName, conf.IntermediatePath));
