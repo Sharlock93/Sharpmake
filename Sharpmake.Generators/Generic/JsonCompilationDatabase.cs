@@ -75,9 +75,14 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
             var factory = new CompileCommandFactory(context);
 
+            var extensions = projectConfiguration.Project.SourceFilesCPPExtensions;
+            extensions.AddRange(projectConfiguration.Project.SourceFilesCompileAsCRegex);
+            extensions.AddRange(projectConfiguration.Project.SourceFilesCompileExtensions);
+            extensions.AddRange(projectConfiguration.Project.SourceFilesCompileAsObjCRegex);
+
             var database = projectConfiguration.Project.GetSourceFilesForConfigurations(new[] { projectConfiguration })
                 .Except(projectConfiguration.ResolvedSourceFilesBuildExclude)
-                .Where(f => projectConfiguration.Project.SourceFilesCPPExtensions.Contains(Path.GetExtension(f)))
+                .Where(f => extensions.Contains(Path.GetExtension(f)))
                 .Select(factory.CreateCompileCommand);
 
             foreach (var cc in database)

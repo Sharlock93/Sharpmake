@@ -156,6 +156,8 @@ namespace Sharpmake
         /// </summary>
         maccatalyst = 1 << 14,
 
+        psvita = 1 << 15,
+
         // This is a reverse-growing section for undisclosed platforms
         _reserved10 = 1 << 21, // ACTIVE
         _reserved9  = 1 << 22, // ACTIVE
