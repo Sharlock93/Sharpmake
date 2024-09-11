@@ -14,13 +14,13 @@ namespace Sharpmake.PSVita
         public class PSVitaEnvironmentResolver : EnvironmentVariableResolver
         {
 
-            private static string vita_sdk = string.Empty;
+            private static string s_vita_sdk;
             [Resolvable]
             public static string SCE_PSP2_SDK_DIR
             {
                 get
                 {
-                    return Util.GetEnvironmentVariable("SCE_PSP2_SDK_DIR", @"C:\PSVITA\sdk", ref vita_sdk);
+                    return Util.GetEnvironmentVariable("SCE_PSP2_SDK_DIR", @"C:\PSVITA\sdk", ref s_vita_sdk);
                 }
             }
 
