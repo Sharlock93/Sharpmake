@@ -2733,6 +2733,9 @@ namespace Sharpmake
         public string GradlePlugin { get; set; } = RemoveLineTag;
 
         public string GradleVersion { get; set; } = RemoveLineTag;
+        public string GradleToolName { get; set; } = RemoveLineTag;
+        public string GradleAppLibName { get; set; } = RemoveLineTag;
+
 
         /// <summary>
         /// The project type to lookup in the dependencies of the package to be used as the application library.

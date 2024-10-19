@@ -203,29 +203,107 @@ namespace Sharpmake.Generators.VisualStudio
 
             string androidPackageDirectory = context.AndroidPackageProject.AntBuildRootDirectory;
 
-            // configuration ItemDefinitionGroup
-            foreach (Project.Configuration conf in context.ProjectConfigurations)
+            if (!_isGradleBuild)
             {
-                context.Configuration = conf;
-
-                using (fileGenerator.Declare("platformName", Util.GetToolchainPlatformString(conf.Platform, conf.Project, conf.Target)))
-                using (fileGenerator.Declare("conf", conf))
-                using (fileGenerator.Declare("options", context.ProjectConfigurationOptions[conf]))
-                using (fileGenerator.Declare("androidPackageDirectory", androidPackageDirectory))
+                // configuration ItemDefinitionGroup
+                foreach (Project.Configuration conf in context.ProjectConfigurations)
                 {
-                    fileGenerator.Write(Template.Project.ProjectConfigurationBeginItemDefinition);
+                    context.Configuration = conf;
+
+                    using (fileGenerator.Declare("platformName", Util.GetToolchainPlatformString(conf.Platform, conf.Project, conf.Target)))
+                    using (fileGenerator.Declare("conf", conf))
+                    using (fileGenerator.Declare("options", context.ProjectConfigurationOptions[conf]))
+                    using (fileGenerator.Declare("androidPackageDirectory", androidPackageDirectory))
                     {
-                        if (!_isGradleBuild)
-                            fileGenerator.Write(Template.Project.AntPackage);
+                        fileGenerator.Write(Template.Project.ProjectConfigurationBeginItemDefinition);
+                        {
+                                fileGenerator.Write(Template.Project.AntPackage);
+                        }
+                        fileGenerator.Write(Template.Project.ProjectConfigurationEndItemDefinition);
                     }
-                    fileGenerator.Write(Template.Project.ProjectConfigurationEndItemDefinition);
                 }
+            }
+
+
+            // Generate Build.Bat for Gradle
+            var RemoveLineTag = FileGeneratorUtilities.RemoveLineTag;
+            var options = context.Options;
+            var project_conf = firstConf;
+            context.SelectOption(
+            Options.Option(Options.Android.General.AndroidAPILevel.Latest, () =>
+                {
+                    string lookupDirectory = options["androidHome"];
+
+                    // Android API Level
+                    string androidApiLevel = RemoveLineTag;
+                    string androidBuildToolVersion = RemoveLineTag;
+
+                    if (lookupDirectory != RemoveLineTag)
+                    {
+                        string latestApiLevel = FindLatestApiLevelInDirectory(Path.Combine(lookupDirectory, "platforms"));
+                        if (!string.IsNullOrEmpty(latestApiLevel))
+                            androidApiLevel = latestApiLevel;
+
+                        string latestBuildTool = FindLatestBuildToolsInDirectory(Path.Combine(lookupDirectory, "build-tools"));
+                        if (!string.IsNullOrEmpty(latestBuildTool))
+                            androidBuildToolVersion = latestBuildTool;
+                    }
+                    options["AndroidAPILevel"] = androidApiLevel;
+                    options["AndroidBuildToolVersion"] = androidBuildToolVersion;
+                }
+            ),
+            Options.Option(Options.Android.General.AndroidAPILevel.Default,   () => { options["AndroidAPILevel"] = RemoveLineTag; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android16, () => { options["AndroidAPILevel"] = "android-16"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android17, () => { options["AndroidAPILevel"] = "android-17"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android18, () => { options["AndroidAPILevel"] = "android-18"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android19, () => { options["AndroidAPILevel"] = "android-19"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android20, () => { options["AndroidAPILevel"] = "android-20"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android21, () => { options["AndroidAPILevel"] = "android-21"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android22, () => { options["AndroidAPILevel"] = "android-22"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android23, () => { options["AndroidAPILevel"] = "android-23"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android24, () => { options["AndroidAPILevel"] = "android-24"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android25, () => { options["AndroidAPILevel"] = "android-25"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android26, () => { options["AndroidAPILevel"] = "android-26"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android27, () => { options["AndroidAPILevel"] = "android-27"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android28, () => { options["AndroidAPILevel"] = "android-28"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android29, () => { options["AndroidAPILevel"] = "android-29"; }),
+            Options.Option(Options.Android.General.AndroidAPILevel.Android30, () => { options["AndroidAPILevel"] = "android-30"; })
+            );
+
+            string assetPaths = firstConf.ResourceIncludePaths.Count() == 0 ? RemoveLineTag : "";
+            foreach(var assetPath in firstConf.ResourceIncludePaths)
+            {
+                assetPaths += "-A " +  assetPath;
+            }
+
+            FileGenerator gradleAlternateBuild = new FileGenerator();
+            using(gradleAlternateBuild.Declare("sdkRoot", options["androidHome"]))
+            using(gradleAlternateBuild.Declare("javaHome", options["javaHome"]))
+            using(gradleAlternateBuild.Declare("apiVersion", options["AndroidAPILevel"]))
+            using(gradleAlternateBuild.Declare("buildToolsVersion", options["AndroidBuildToolVersion"]))
+            using(gradleAlternateBuild.Declare("androidManifestPath", context.AndroidPackageProject.AndroidManifest))
+            using(gradleAlternateBuild.Declare("outputPath", Path.Combine(project_conf.TargetPath, project_conf.TargetFileName + ".apk")))
+            using(gradleAlternateBuild.Declare("assetPaths", assetPaths))
+            {
+                gradleAlternateBuild.Write(Template.Project.GradleBuildBat);
+            }
+
+            FileInfo build_bat = new FileInfo(context.ProjectPath + ".bat");
+            if(context.Builder.Context.WriteGeneratedFile(null, build_bat, gradleAlternateBuild))
+            {
+                generatedFiles.Add(build_bat.FullName);
+            }
+            else
+            {
+                skipFiles.Add(build_bat.FullName);
             }
 
             if (_isGradleBuild)
             {
                 using (fileGenerator.Declare("gradlePlugin", context.AndroidPackageProject.GradlePlugin))
                 using (fileGenerator.Declare("gradleVersion", context.AndroidPackageProject.GradleVersion))
+                using (fileGenerator.Declare("gradleAppLibName", context.AndroidPackageProject.GradleAppLibName))
+                using (fileGenerator.Declare("toolName", build_bat.FullName))
                 {
                     fileGenerator.Write(VsProjCommon.Template.ItemDefinitionGroupBegin);
                     fileGenerator.Write(Template.Project.GradlePackage);
@@ -254,6 +332,9 @@ namespace Sharpmake.Generators.VisualStudio
                 generatedFiles.Add(projectFileInfo.FullName);
             else
                 skipFiles.Add(projectFileInfo.FullName);
+
+
+            
         }
 
         private void GenerateFilesSection(
@@ -439,5 +520,102 @@ namespace Sharpmake.Generators.VisualStudio
             string intermediateDirectoryRelative = Util.PathGetRelative(context.ProjectDirectoryCapitalized, conf.IntermediatePath);
             options["IntermediateDirectory"] = intermediateDirectoryRelative;
         }
+
+        // will find folders named after the platform api level,
+        // following this pattern: android-XX, with XX being 2 digits
+        public static string FindLatestApiLevelInDirectory(string directory)
+        {
+            string latestDirectory = null;
+            if (Directory.Exists(directory))
+            {
+                var androidDirectories = Sharpmake.Util.DirectoryGetDirectories(directory);
+                int latestValue = 0;
+                foreach (var folderName in androidDirectories.Select(Path.GetFileName))
+                {
+                    int current = 0;
+                    if (TryParseAndroidApiValue(folderName, out current))
+                    {
+                        if (current > latestValue)
+                        {
+                            latestValue = current;
+                            latestDirectory = folderName;
+                        }
+                    }
+                }
+            }
+
+            return latestDirectory;
+        }
+
+        public static bool TryParseAndroidApiValue(string apiString, out int apiValue)
+        {
+            apiValue = 0;
+            if (string.IsNullOrWhiteSpace(apiString))
+                return false;
+
+            const int devKitEditionTargetExpectedLength = 10;
+            if (apiString.Length != devKitEditionTargetExpectedLength)
+                return false;
+
+            // skip 'android-'
+            string valueString = apiString.Substring(8);
+
+            return int.TryParse(valueString, out apiValue);
+        }
+
+
+        // will try to find the latest build tools version
+        // following this pattern: XX.YY.ZZ XX => major version, YY => minor version, ZZ => subverison number
+        public static string FindLatestBuildToolsInDirectory(string directory)
+        {
+            string latestDirectory = null;
+            if (Directory.Exists(directory))
+            {
+                var androidDirectories = Sharpmake.Util.DirectoryGetDirectories(directory);
+
+                int latestMajorValue = 0;
+                int latestMinorValue = 0;
+                int latestSubminorValue = 0;
+
+                foreach (var folderName in androidDirectories.Select(Path.GetFileName))
+                {
+                    int currentMajor = 0;
+                    int currentMinor = 0;
+                    int currentSubminor = 0;
+
+                    if (TryParseAndroidBuildToolsValue(folderName, out currentMajor, out currentMinor, out currentSubminor))
+                    {
+                        if (currentMajor >= latestMajorValue && currentMinor >= latestMajorValue && currentSubminor >= latestSubminorValue)
+                        {
+                            latestMajorValue = currentMajor;
+                            latestMinorValue = currentMinor;
+                            latestSubminorValue = currentSubminor;
+                            latestDirectory = folderName;
+                        }
+                    }
+                }
+            }
+
+            return latestDirectory;
+        }
+
+        public static bool TryParseAndroidBuildToolsValue(string apiString, out int apiMajorValue, out int apiMinorValue, out int apiSubminorValue)
+        {
+            apiMajorValue = 0;
+            apiMinorValue = 0;
+            apiSubminorValue = 0;
+
+            if (string.IsNullOrWhiteSpace(apiString))
+                return false;
+
+            string[] valueStrings = apiString.Split(".");
+
+            bool res = int.TryParse(valueStrings[0], out apiMajorValue);
+            res = res && int.TryParse(valueStrings[1], out apiMinorValue);
+            res = res && int.TryParse(valueStrings[2], out apiSubminorValue);
+
+            return res;
+        }
+
     }
 }
