@@ -28,7 +28,7 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
         public event Action<IGenerationContext, CompileCommand> CompileCommandGenerated;
 
-        public void Generate(Builder builder, string path, IEnumerable<Project.Configuration> projectConfigurations, CompileCommandFormat format, List<string> generatedFiles, List<string> skipFiles)
+        public void Generate(Builder builder, string path, IEnumerable<Project.Configuration> projectConfigurations, CompileCommandFormat format, List<string> generatedFiles, List<string> skipFiles, string output_file_name = FileName)
         {
             var database = new List<IDictionary<string, object>>();
 
@@ -38,12 +38,22 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             }
 
             if (database.Count > 0)
-                WriteGeneratedFile(builder, path, database, generatedFiles, skipFiles);
+                WriteGeneratedFile(builder, output_file_name, path, database, generatedFiles, skipFiles);
         }
 
-        private void WriteGeneratedFile(Builder builder, string path, IEnumerable<IDictionary<string, object>> database, List<string> generatedFiles, List<string> skipFiles)
+        public void Generate(Builder builder, string path, Project.Configuration projectConfiguration, CompileCommandFormat format, List<string> generatedFiles, List<string> skipFiles, string output_file_name = FileName)
         {
-            var file = new FileInfo(Path.Combine(path, FileName));
+            var database = new List<IDictionary<string, object>>();
+
+            database.AddRange(GetEntries(builder, projectConfiguration, format));
+
+            if (database.Count > 0)
+                WriteGeneratedFile(builder, output_file_name, path, database, generatedFiles, skipFiles);
+        }
+
+        private void WriteGeneratedFile(Builder builder, string file_name, string path, IEnumerable<IDictionary<string, object>> database, List<string> generatedFiles, List<string> skipFiles)
+        {
+            var file = new FileInfo(Path.Combine(path, file_name));
 
             using (var stream = new MemoryStream())
             using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
@@ -75,8 +85,9 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
             var factory = new CompileCommandFactory(context);
 
-            var extensions = projectConfiguration.Project.SourceFilesCPPExtensions;
-            extensions.AddRange(projectConfiguration.Project.SourceFilesCompileAsCRegex);
+			var extensions = projectConfiguration.Project.SourceFilesCPPExtensions;
+			extensions.AddRange(projectConfiguration.Project.SourceFilesCompileAsCRegex);
+            extensions.AddRange(projectConfiguration.Project.SourceFilesExtensions);
             extensions.AddRange(projectConfiguration.Project.SourceFilesCompileExtensions);
             extensions.AddRange(projectConfiguration.Project.SourceFilesCompileAsObjCRegex);
 

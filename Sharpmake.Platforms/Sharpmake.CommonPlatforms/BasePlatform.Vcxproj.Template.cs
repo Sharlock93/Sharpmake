@@ -15,7 +15,7 @@ namespace Sharpmake
       <ExternalTemplatesDiagnostics>[options.ExternalTemplatesDiagnostics]</ExternalTemplatesDiagnostics>
       <Optimization>[options.Optimization]</Optimization>
       <PreprocessorDefinitions>[EscapeXML:options.PreprocessorDefinitions];%(PreprocessorDefinitions);$(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>[options.AdditionalIncludeDirectories]</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>[options.AdditionalIncludeDirectories];%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>[options.AdditionalUsingDirectories]</AdditionalUsingDirectories>
       <DebugInformationFormat>[options.DebugInformationFormat]</DebugInformationFormat>
       <CompileAsManaged>[compileAsManaged]</CompileAsManaged>
