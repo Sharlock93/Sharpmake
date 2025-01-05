@@ -312,6 +312,10 @@ namespace Sharpmake.Generators.VisualStudio
 @"      <OutputItemType>[outputItemType]</OutputItemType>
 ";
 
+                public static string ProjectFilesCustomBuildBuildInParallel =
+                @"      <BuildInParallel Condition=""'$(Configuration)|$(Platform)'=='[conf.Name]|[platformName]'"">[buildInParallel]</BuildInParallel>
+";
+
                 public static string ProjectFilesCustomBuildEnd =
                 @"    </CustomBuild>
 ";

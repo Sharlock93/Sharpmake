@@ -14,7 +14,7 @@ namespace Sharpmake.PSVita
         public class PSVitaEnvironmentResolver : EnvironmentVariableResolver
         {
 
-            private static string s_vita_sdk;
+            private static string s_vita_sdk = string.Empty;
             [Resolvable]
             public static string SCE_PSP2_SDK_DIR
             {

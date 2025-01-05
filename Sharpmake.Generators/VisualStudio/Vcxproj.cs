@@ -165,6 +165,7 @@ namespace Sharpmake.Generators.VisualStudio
             public string Outputs = "";
             public string AdditionalInputs = "";
             public string OutputItemType = "";
+            public bool BuildInParallel = false;
         };
 
         public static Dictionary<string, CombinedCustomFileBuildStep> CombineCustomFileBuildSteps(string referencePath, Resolver resolver, IEnumerable<Project.Configuration.CustomFileBuildStep> buildSteps)
@@ -206,6 +207,7 @@ namespace Sharpmake.Generators.VisualStudio
 
                 //Vcxproj only allows specifying one output item type per build command
                 combinedCustomBuildStep.OutputItemType = customBuildStep.OutputItemType;
+                combinedCustomBuildStep.BuildInParallel = customBuildStep.BuildInParallel;
             }
 
             return steps;
@@ -1506,6 +1508,7 @@ namespace Sharpmake.Generators.VisualStudio
                                 using (fileGenerator.Declare("command", buildStep.Commands))
                                 using (fileGenerator.Declare("inputs", buildStep.AdditionalInputs))
                                 using (fileGenerator.Declare("outputs", buildStep.Outputs))
+                                using (fileGenerator.Declare("buildInParallel", buildStep.BuildInParallel ? "true" : FileGeneratorUtilities.RemoveLineTag))
                                 using (fileGenerator.Declare("outputItemType", string.IsNullOrEmpty(buildStep.OutputItemType) ? FileGeneratorUtilities.RemoveLineTag : buildStep.OutputItemType))
                                 {
                                     fileGenerator.Write(Template.Project.ProjectFilesCustomBuildDescription);
@@ -1513,6 +1516,7 @@ namespace Sharpmake.Generators.VisualStudio
                                     fileGenerator.Write(Template.Project.ProjectFilesCustomBuildInputs);
                                     fileGenerator.Write(Template.Project.ProjectFilesCustomBuildOutputs);
                                     fileGenerator.Write(Template.Project.ProjectFilesCustomBuildOutputItemType);
+                                    fileGenerator.Write(Template.Project.ProjectFilesCustomBuildBuildInParallel);
                                 }
                             }
                         }

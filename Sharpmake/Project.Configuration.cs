@@ -2327,6 +2327,11 @@ namespace Sharpmake
                 /// Specifies whether this step should run in builds for project files or FASTBuild or both.
                 /// </summary>
                 public ProjectFilter Filter = ProjectFilter.AllProjects;
+
+                /// <summary>
+                /// Specifies if this file should be ran in parallel
+                /// </summary>
+                public bool BuildInParallel = false;
             }
 
             public class CustomFileBuildStep : CustomFileBuildStepData
