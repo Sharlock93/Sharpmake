@@ -1544,6 +1544,8 @@ namespace Sharpmake
                 set { _fastBuildUnityPath = value; }
             }
 
+            public string FastBuildInputFilesRootPath = null;
+
             /// <summary>
             /// If specified, overrides <c>Project.DefaultBlobWorkFileHeader</c>.
             /// </summary>
@@ -1680,6 +1682,28 @@ namespace Sharpmake
             /// (Only for FastBuild with ClangCl) Sets how to detect the Microsoft compiler version to fill the _MSC_VER and _MSC_FULL_VER preprocessor values.
             /// </summary>
             public FastBuildClangMscVersionDetectionType FastBuildClangMscVersionDetectionInfo = FastBuildClangMscVersionDetectionType.FullVersion;
+
+            private string _fastBuildLinkConcurrencyGroup = null;
+            /// <summary>
+            /// Optional fastbuild concurrency group name. Concurrency groups are used to limit the number of parallel processes using the same concurrency group.
+            /// It can be used for example to limit the number of LTO link process to 1.
+            /// </summary>
+            public string FastBuildLinkConcurrencyGroup
+            {
+                get
+                {
+                    return _fastBuildLinkConcurrencyGroup;
+                }
+                set
+                {
+                    if (!FastBuildSettings.EnableConcurrencyGroups)
+                        throw new Error("Can't set FastBuildLinkConcurrencyGroup as FastBuildSettings.EnableConcurrencyGroups is false");
+                    if (!FastBuildSettings.ConcurrencyGroups.ContainsKey(value))
+                        throw new Error($"Can't set FastBuildLinkConcurrencyGroup to {value} as it is not defined in FastBuildSettings.ConcurrencyGroups");
+
+                    _fastBuildLinkConcurrencyGroup = value;
+                }
+            }
 
             private Strings _intellisenseAdditionalDefines;
 

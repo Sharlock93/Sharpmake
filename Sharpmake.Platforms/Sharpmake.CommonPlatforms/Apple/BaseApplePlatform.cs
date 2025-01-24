@@ -191,7 +191,25 @@ namespace Sharpmake
                 fileGenerator.Write(_linkerOptionsTemplate);
         }
 
+        public IEnumerable<Project.Configuration.BuildStepExecutable> GetExtraStampEvents(Project.Configuration configuration, string fastBuildOutputFile)
+        {
+            if (FastBuildSettings.FastBuildSupportLinkerStampList)
+            {
+                foreach (var step in GetStripDebugSymbolsSteps(configuration, fastBuildOutputFile, asStampSteps: true))
+                    yield return step;
+            }
+        }
+
         public IEnumerable<Project.Configuration.BuildStepBase> GetExtraPostBuildEvents(Project.Configuration configuration, string fastBuildOutputFile)
+        {
+            if (!FastBuildSettings.FastBuildSupportLinkerStampList)
+            {
+                foreach (var step in GetStripDebugSymbolsSteps(configuration, fastBuildOutputFile, asStampSteps: false))
+                    yield return step;
+            }
+        }
+
+        private IEnumerable<Project.Configuration.BuildStepExecutable> GetStripDebugSymbolsSteps(Project.Configuration configuration, string fastBuildOutputFile, bool asStampSteps)
         {
             if (Util.GetExecutingPlatform() == Platform.mac)
             {
@@ -203,24 +221,55 @@ namespace Sharpmake
                    configuration.Output == Project.Configuration.OutputType.Dll
                    ))
                 {
-                    var debugFormat = Options.GetObject<Sharpmake.Options.XCode.Compiler.DebugInformationFormat>(configuration);
+                    var debugFormat = Options.GetObject<Options.XCode.Compiler.DebugInformationFormat>(configuration);
                     if (debugFormat == Options.XCode.Compiler.DebugInformationFormat.DwarfWithDSym)
                     {
                         string outputPath = Path.Combine(configuration.TargetPath, configuration.TargetFileFullNameWithExtension + ".dSYM");
+                        string dsymutilSentinelFile = Path.Combine(configuration.IntermediatePath, configuration.TargetFileName + ".dsymdone");
                         yield return new Project.Configuration.BuildStepExecutable(
                             "/usr/bin/dsymutil",
-                            fastBuildOutputFile,
-                            Path.Combine(configuration.IntermediatePath, configuration.TargetFileName + ".dsymdone"),
+                            asStampSteps ? string.Empty : fastBuildOutputFile,
+                            asStampSteps ? string.Empty : dsymutilSentinelFile,
                             $"{fastBuildOutputFile} -o {outputPath}",
                             useStdOutAsOutput: true);
+
+                        // Stripping
+                        if (Options.GetObject<Options.XCode.Linker.StripLinkedProduct>(configuration) == Options.XCode.Linker.StripLinkedProduct.Enable)
+                        {
+                            List<string> stripOptionList = new List<string>();
+                            switch (Options.GetObject<Options.XCode.Linker.StripStyle>(configuration))
+                            {
+                                case Options.XCode.Linker.StripStyle.AllSymbols:
+                                    stripOptionList.Add("-s");
+                                    break;
+                                case Options.XCode.Linker.StripStyle.NonGlobalSymbols:
+                                    stripOptionList.Add("-x");
+                                    break;
+                                case Options.XCode.Linker.StripStyle.DebuggingSymbolsOnly:
+                                    stripOptionList.Add("-S");
+                                    break;
+                            }
+                            if (Options.GetObject<Options.XCode.Linker.StripSwiftSymbols>(configuration) == Options.XCode.Linker.StripSwiftSymbols.Enable)
+                                stripOptionList.Add("-T");
+
+                            var additionalStripFlags = Options.GetObject<Options.XCode.Linker.AdditionalStripFlags>(configuration);
+                            if (additionalStripFlags != null)
+                                stripOptionList.Add(XCodeUtil.ResolveProjectVariable(configuration.Project, additionalStripFlags.Value));
+
+                            string stripOptions = string.Join(" ", stripOptionList);
+
+                            string strippedSentinelFile = Path.Combine(configuration.IntermediatePath, configuration.TargetFileName + ".stripped");
+                            yield return new Project.Configuration.BuildStepExecutable(
+                                "/usr/bin/strip",
+                                asStampSteps ? string.Empty : dsymutilSentinelFile,
+                                asStampSteps ? string.Empty : strippedSentinelFile,
+                                $"{stripOptions} {fastBuildOutputFile}",
+                                useStdOutAsOutput: true
+                            );
+                        }
                     }
                 }
             }
-        }
-
-        public IEnumerable<Project.Configuration.BuildStepExecutable> GetExtraStampEvents(Project.Configuration configuration, string fastBuildOutputFile)
-        {
-            return Enumerable.Empty<Project.Configuration.BuildStepExecutable>();
         }
 
         public string GetOutputFilename(Project.Configuration.OutputType outputType, string fastBuildOutputFile) => fastBuildOutputFile;
@@ -1337,6 +1386,19 @@ namespace Sharpmake
                 Options.Option(Options.XCode.Linker.StripLinkedProduct.Disable, () => options["StripLinkedProduct"] = "NO"),
                 Options.Option(Options.XCode.Linker.StripLinkedProduct.Enable, () => options["StripLinkedProduct"] = "YES")
             );
+
+            context.SelectOption(
+                Options.Option(Options.XCode.Linker.StripStyle.AllSymbols, () => options["StripStyle"] = "all"),
+                Options.Option(Options.XCode.Linker.StripStyle.NonGlobalSymbols, () => options["StripStyle"] = "non-global"),
+                Options.Option(Options.XCode.Linker.StripStyle.DebuggingSymbolsOnly, () => options["StripStyle"] = "debugging")
+            );
+
+            context.SelectOption(
+                Options.Option(Options.XCode.Linker.StripSwiftSymbols.Disable, () => options["StripSwiftSymbols"] = "NO"),
+                Options.Option(Options.XCode.Linker.StripSwiftSymbols.Enable, () => options["StripSwiftSymbols"] = "YES")
+            );
+
+            options["AdditionalStripFlags"] = XCodeUtil.ResolveProjectVariable(context.Project, Options.StringOption.Get<Options.XCode.Linker.AdditionalStripFlags>(conf));
 
             context.SelectOption(
                 Options.Option(Options.XCode.Linker.PerformSingleObjectPrelink.Disable, () => options["GenerateMasterObjectFile"] = "NO"),
