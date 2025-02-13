@@ -646,6 +646,8 @@ popd";
                             conf.EventPreBuild.Add(fastbuildCmd);
                         }
                     }
+
+                    RegisterCustomFileBuildStep(context, conf, xCodeTargetName, _shellScriptPreBuildPhases);
                     RegisterScriptBuildPhase(xCodeTargetName, _shellScriptPreBuildPhases, conf.EventPreBuild.GetEnumerator());
                     RegisterScriptBuildPhase(xCodeTargetName, _shellScriptPostBuildPhases, conf.EventPostBuild.GetEnumerator());
 
@@ -977,6 +979,43 @@ popd";
 
             return configsPerTarget;
         }
+
+        private void RegisterCustomFileBuildStep(XCodeGenerationContext context, Project.Configuration conf, string xCodeTargetName, Dictionary<string, UniqueList<ProjectShellScriptBuildPhase>> shellScriptPhases)
+        {
+            Resolver resolver = new Resolver();
+            using (resolver.NewScopedParameter("project", context.Project))
+            using (resolver.NewScopedParameter("config", conf))
+            using (resolver.NewScopedParameter("target", conf.Target))
+            {
+
+                // var customFileBuildSteps = Vcxproj.CombineCustomFileBuildSteps(context.ProjectDirectory, resolver, conf.CustomFileBuildSteps.Where(step => step.Filter != Project.Configuration.CustomFileBuildStep.ProjectFilter.BFFOnly));
+                foreach (var customBuildStep in conf.CustomFileBuildSteps)
+                {
+                    var relativeBuildStep = customBuildStep.MakePathRelative(resolver, (path, commandRelative) => Util.SimplifyPath(Util.PathGetRelative(context.ProjectDirectory, path)));
+
+                    var buildEvent = relativeBuildStep.Executable;
+                    var cmd = $"{relativeBuildStep.Executable} {relativeBuildStep.ExecutableArguments}";
+                    var desc = relativeBuildStep.Description;
+
+                    
+                    var shellScriptBuildPhase = new ProjectShellScriptBuildPhase(desc, 2147483647)
+                    {
+                        script = cmd
+                    };
+                    _projectItems.Add(shellScriptBuildPhase);
+                    if (!shellScriptPhases.ContainsKey(xCodeTargetName))
+                    {
+                        shellScriptPhases.Add(xCodeTargetName, new UniqueList<ProjectShellScriptBuildPhase>(new ProjectShellScriptBuildPhase.EqualityComparer()) { shellScriptBuildPhase });
+                    }
+                    else
+                    {
+                        shellScriptPhases[xCodeTargetName].Add(shellScriptBuildPhase);
+                    }
+                    
+                }
+            }
+        }
+
 
         private void RegisterScriptBuildPhase(string xCodeTargetName, Dictionary<string, UniqueList<ProjectShellScriptBuildPhase>> shellScriptPhases, IEnumerator<string> eventsInConf)
         {
