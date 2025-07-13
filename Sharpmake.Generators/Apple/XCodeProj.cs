@@ -339,7 +339,9 @@ namespace Sharpmake.Generators.Apple
             options["CustomDirectory"] = Options.PathOption.Get<Options.XCode.Scheme.CustomWorkingDirectory>(activeConfiguration);
             var useCustomDirectory = options["CustomDirectory"] != RemoveLineTag ? "YES" : "NO";
 
-            string targetName = $"{activeConfiguration.Target.Name}";
+            options["CustomLLDBInitFile"] = Options.PathOption.Get<Options.XCode.Scheme.CustomLLDBInitFile>(activeConfiguration);
+
+            string targetName = $"&quot;{activeConfiguration.Target.Name}&quot;";
             string buildImplicitDependencies = activeConfiguration.IsFastBuild ? "NO" : "YES";
             bool useBuildableProductRunnableSection = true;
             string runnableFilePath = string.Empty;
@@ -1171,6 +1173,9 @@ popd";
         {
             var includePaths = new OrderableStrings(platformVcxproj.GetIncludePaths(context));
             context.Options["IncludePaths"] = XCodeUtil.XCodeFormatList(includePaths, 4);
+            
+            var includeSystemPaths = new OrderableStrings(platformVcxproj.GetPlatformIncludePaths(context));
+            context.Options["IncludeSystemPaths"] = XCodeUtil.XCodeFormatList(includeSystemPaths, 4);
         }
 
         private static void FillCompilerOptions(IGenerationContext context, IPlatformVcxproj platformVcxproj)

@@ -254,10 +254,10 @@ namespace Sharpmake
             @"  <PropertyGroup Condition=""'$(Configuration)|$(Platform)'=='[conf.Name]|[platformName]'"">
     <OutDir>[options.OutputDirectory]\</OutDir>
     <IntDir>[options.IntermediateDirectory]\</IntDir>
-    <NMakeBuildCommandLine>cd [relativeMasterBffPath]
+    <NMakeBuildCommandLine>cd [fastBuildWorkingDirectory]
 [conf.FastBuildCustomActionsBeforeBuildCommand]
 [fastBuildMakeCommandBuild] </NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine>cd [relativeMasterBffPath]
+    <NMakeReBuildCommandLine>cd [fastBuildWorkingDirectory]
 [conf.FastBuildCustomActionsBeforeBuildCommand]
 [fastBuildMakeCommandRebuild] </NMakeReBuildCommandLine>
     <NMakeCleanCommandLine>del ""[options.IntermediateDirectory]\*unity*.cpp"" &gt;NUL 2&gt;NUL
@@ -272,13 +272,13 @@ del ""[options.OutputDirectory]\[conf.TargetFileFullName].lib"" &gt;NUL 2&gt;NUL
 del ""[options.OutputDirectory]\[conf.TargetFileFullName].pdb"" &gt;NUL 2&gt;NUL</NMakeCleanCommandLine>
     <NMakeOutput>[options.OutputFile]</NMakeOutput>
     <NMakePreprocessorDefinitions>[EscapeXML:options.PreprocessorDefinitions][EscapeXML:options.IntellisenseAdditionalDefines]</NMakePreprocessorDefinitions>
-    <NMakeIncludeSearchPath>[options.AdditionalIncludeDirectories]</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>[options.NMakeIncludeSearchPath]</NMakeIncludeSearchPath>
     <NMakeForcedIncludes>[options.ForcedIncludeFiles]</NMakeForcedIncludes>
     <AdditionalOptions>[options.IntellisenseCommandLineOptions]</AdditionalOptions>
   </PropertyGroup>
   <ItemDefinitionGroup Condition=""'$(Configuration)|$(Platform)'=='[conf.Name]|[platformName]'"">
     <NMakeCompile>
-      <NMakeCompileFileCommandLine>cd [relativeMasterBffPath]
+      <NMakeCompileFileCommandLine>cd [fastBuildWorkingDirectory]
 [conf.FastBuildCustomActionsBeforeBuildCommand]
 [fastBuildMakeCommandCompileFile] </NMakeCompileFileCommandLine>
     </NMakeCompile>
@@ -294,7 +294,7 @@ del ""[options.OutputDirectory]\[conf.TargetFileFullName].pdb"" &gt;NUL 2&gt;NUL
     <NMakeCleanCommandLine>[conf.CustomBuildSettings.CleanCommand]</NMakeCleanCommandLine>
     <NMakeOutput>[conf.CustomBuildSettings.OutputFile]</NMakeOutput>
     <NMakePreprocessorDefinitions>[EscapeXML:options.PreprocessorDefinitions]</NMakePreprocessorDefinitions>
-    <NMakeIncludeSearchPath>[options.AdditionalIncludeDirectories]</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>[options.NMakeIncludeSearchPath]</NMakeIncludeSearchPath>
     <NMakeForcedIncludes>[options.ForcedIncludeFiles]</NMakeForcedIncludes>
     <AdditionalOptions>[options.IntellisenseCommandLineOptions]</AdditionalOptions>
   </PropertyGroup>

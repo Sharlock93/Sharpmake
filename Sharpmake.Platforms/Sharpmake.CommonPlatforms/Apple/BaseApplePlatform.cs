@@ -966,8 +966,10 @@ namespace Sharpmake
                 Options.Option(Options.XCode.Compiler.LibraryStandard.LibCxx, () => { options["StdLib"] = "libc++"; cmdLineOptions["StdLib"] = "-stdlib=libc++"; })
             );
 
-            var frameworkPaths = conf.XcodeSystemFrameworkPaths;
+            OrderableStrings frameworkPaths = new OrderableStrings(conf.XcodeSystemFrameworkPaths);
+            frameworkPaths.AddRange(conf.XcodeDependenciesSystemFrameworkPaths);
             frameworkPaths.AddRange(conf.XcodeFrameworkPaths);
+            frameworkPaths.AddRange(conf.XcodeDependenciesFrameworkPaths);
             XCodeUtil.ResolveProjectPaths(project, frameworkPaths);
             options["FrameworkPaths"] = XCodeUtil.XCodeFormatList(frameworkPaths, 4);
 
@@ -1214,6 +1216,11 @@ namespace Sharpmake
             context.SelectOption(
                 Options.Option(Options.XCode.Compiler.MetalFastMath.Disable, () => options["MetalFastMath"] = "NO"),
                 Options.Option(Options.XCode.Compiler.MetalFastMath.Enable, () => options["MetalFastMath"] = "YES")
+            );
+
+            context.SelectOption(
+                Options.Option(Options.XCode.Compiler.UseHeaderMap.Disable, () => options["UseHeaderMap"] = "NO"),
+                Options.Option(Options.XCode.Compiler.UseHeaderMap.Enable, () => options["UseHeaderMap"] = "YES")
             );
 
             #region infoplist keys
@@ -1583,8 +1590,6 @@ namespace Sharpmake
             includePaths.AddRange(conf.IncludePrivatePaths);
             includePaths.AddRange(conf.IncludePaths);
             includePaths.AddRange(conf.DependenciesIncludePaths);
-            includePaths.AddRange(conf.IncludeSystemPaths);
-            includePaths.AddRange(conf.DependenciesIncludeSystemPaths);
 
             includePaths.Sort();
             return includePaths;
@@ -1592,8 +1597,16 @@ namespace Sharpmake
 
         private IEnumerable<IncludeWithPrefix> GetPlatformIncludePathsWithPrefixImpl(IGenerationContext context)
         {
-            const string cmdLineIncludePrefix = "-isystem";
-            return context.Configuration.DependenciesIncludeSystemPaths.Select(includePath => new IncludeWithPrefix(cmdLineIncludePrefix, includePath));
+            var conf = context.Configuration;
+
+            var systemIncludes = new OrderableStrings();
+            systemIncludes.AddRange(conf.DependenciesIncludeSystemPaths);
+            systemIncludes.AddRange(conf.IncludeSystemPaths);
+
+            systemIncludes.Sort();
+
+            const string cmdLineIncludePrefix = "-isystem ";
+            return systemIncludes.Select(path => new IncludeWithPrefix(cmdLineIncludePrefix, path));
         }
 
         private IEnumerable<string> GetResourceIncludePathsImpl(IGenerationContext context)
