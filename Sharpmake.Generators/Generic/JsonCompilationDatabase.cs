@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using Sharpmake.Generators.FastBuild;
 using Sharpmake.Generators.VisualStudio;
 
 namespace Sharpmake.Generators.JsonCompilationDatabase
@@ -182,6 +184,8 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
         private Project.Configuration _config;
         private string _compiler;
+        private bool _isMicrosoft;
+        private bool _isClang;
         private string _projectDirectory;
         private string _outputDirectory;
         private string _outputExtension;
@@ -192,19 +196,28 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
         public CompileCommandFactory(CompileCommandGenerationContext context)
         {
-            var isClang = context.Configuration.Platform.IsUsingClang();
-            var isMicrosoft = context.Configuration.Platform.IsMicrosoft();
+            _isClang = context.Configuration.Platform.IsUsingClang();
+            _isMicrosoft = context.Configuration.Platform.IsMicrosoft();
 
-            _compiler = isClang ? "clang.exe" : "clang-cl.exe";
+            Dictionary<string, CompilerSettings> compilerInfo = new Dictionary<string, CompilerSettings>();
+            var ConfPlatform = PlatformRegistry.Get<IPlatformBff>(context.Configuration.Platform);
+            ConfPlatform.AddCompilerSettings(compilerInfo, context.Configuration);
+
+            CompilerSettings firstCompiler = compilerInfo.First().Value;
+
+            string compilerName = firstCompiler.Executable.Replace("$ExecutableRootPath$", "");
+            string compilerPath = firstCompiler.RootPath + compilerName;
+
+            _compiler = compilerPath;
             _config = context.Configuration;
-            _outputExtension = isMicrosoft ? ".obj" : ".o";
+            _outputExtension = _isMicrosoft ? ".obj" : ".o";
             _outputDirectory = _config.IntermediatePath;
             _projectDirectory = context.ProjectDirectoryCapitalized;
-            _flags = isClang ? s_clangFlags : s_vcFlags;
+            _flags = _isClang ? s_clangFlags : s_vcFlags;
 
             s_optionGenerator.GenerateOptions(context, ProjectOptionGenerationLevel.Compiler);
 
-            _arguments.Add(isClang ? "-c" : "/c");
+            _arguments.Add(_isClang ? "-c" : "/c");
 
             // Precomp arguments flags are actually written by the bff generator (see bff.template.cs)
             // Therefore, the CommandLineOptions entries only contain the pch name and file.
@@ -234,8 +247,8 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
                 .Where(IsValidOption)
                 .ToDictionary(kvp => kvp.Key, FlattenMultilineArgument);
 
-            var platformDefineSwitch = isClang ? "-D" : "/D";
-            if (isMicrosoft)
+            var platformDefineSwitch = _isClang ? "-D" : "/D";
+            if (_isMicrosoft)
             {
                 // Required to avoid errors in VC headers.
                 var value = validOptions.ContainsKey("ExceptionHandling") ? 1 : 0;
@@ -250,7 +263,12 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
         private bool IsValidOption(KeyValuePair<string, string> option)
         {
-            return !option.Value.Equals(FileGeneratorUtilities.RemoveLineTag) && !s_ignoredOptions.Contains(option.Key);
+            bool valid = !option.Value.Equals(FileGeneratorUtilities.RemoveLineTag) && !s_ignoredOptions.Contains(option.Key) && option.Value != string.Empty;
+            if (_isClang)
+            {
+                valid = valid && !option.Value.StartsWith("/");
+            }
+            return valid;
         }
 
         internal static string CmdLineConvertIncludePathsFunc(CompileCommandGenerationContext context, string include, string prefix)
