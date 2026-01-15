@@ -1388,9 +1388,9 @@ namespace Sharpmake
         {
         }
 
-        private string BlobGenerateFile(string blobPath, IEnumerable<string> sourceFiles, string filename, List<Configuration> configurations, string header, string footer)
+        private string BlobGenerateFile(string blobPath, IEnumerable<string> sourceFiles, string filename, List<Configuration> configurations, string header, string footer, string extension)
         {
-            string blobFileName = Path.Combine(blobPath, filename + BlobExtension);
+            string blobFileName = Path.Combine(blobPath, filename + BlobExtension + extension ?? ".cpp");
 
             FileInfo blobFileInfo = new FileInfo(blobFileName);
             MemoryStream stream = new MemoryStream();
@@ -1600,13 +1600,21 @@ namespace Sharpmake
             // Write blobs
             if (writeBlobsOnDisk)
             {
+                
                 for (int i = 0; i < allBlobsFiles.Count; ++i)
                 {
                     string blobFileName = string.Format(@"{0}_{1:000}", Name.ToLower(), i);
                     var blobbedFiles = (isBlobWorkEnabled) ?
                         from j in allBlobsFiles[i] where !j.IsWorkBlobCandidate select j.Path :
                         from j in allBlobsFiles[i] select j.Path;
-                    blobFiles.Add(BlobGenerateFile(blobPath, blobbedFiles, blobFileName, configurations, null, null));
+
+                    var blobGroups = blobbedFiles.GroupBy(a => Path.GetExtension(a));
+                    foreach (var group in blobGroups)
+                    {
+                        string extension = group.Key;
+                        string[] extensionFiles = group.ToArray();
+                        blobFiles.Add(BlobGenerateFile(blobPath, extensionFiles, blobFileName, configurations, null, null, extension));
+                    }
                 }
 
                 // write work blob size
@@ -1627,7 +1635,7 @@ namespace Sharpmake
                     for (int i = 0; i < workBlobFiles.Count; ++i)
                     {
                         string blobFileName = string.Format(@"{0}_work_{1:000}", Name.ToLower(), i);
-                        blobFiles.Add(BlobGenerateFile(blobPath, workBlobFiles[i], blobFileName, configurations, WorkBlobFileHeader, WorkBlobFileFooter));
+                        blobFiles.Add(BlobGenerateFile(blobPath, workBlobFiles[i], blobFileName, configurations, WorkBlobFileHeader, WorkBlobFileFooter, null));
                     }
                 }
             }
@@ -2020,7 +2028,7 @@ namespace Sharpmake
 
         #region Private
 
-        public static readonly string BlobExtension = ".blob.cpp";
+        public static readonly string BlobExtension = ".sharpmake.blob";
 
         internal static List<string> GetDirectoryFiles(DirectoryInfo directoryInfo)
         {
@@ -2035,7 +2043,7 @@ namespace Sharpmake
 
                 foreach (string file in filesList)
                 {
-                    if (!file.EndsWith(BlobExtension, StringComparison.OrdinalIgnoreCase))
+                    if (!file.Contains(BlobExtension, StringComparison.OrdinalIgnoreCase))
                         files.Add(file);
 
                     Util.RegisterCapitalizedPath(file);

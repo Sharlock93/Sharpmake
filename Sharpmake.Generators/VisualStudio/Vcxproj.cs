@@ -1657,7 +1657,7 @@ namespace Sharpmake.Generators.VisualStudio
                             bool consumeWinRTExtensions = conf.ConsumeWinRTExtensions.Contains(file.FileName) || conf.ResolvedSourceFilesWithCompileAsWinRTOption.Contains(file.FileName);
                             bool excludeWinRTExtensions = conf.ExcludeWinRTExtensions.Contains(file.FileName) || conf.ResolvedSourceFilesWithExcludeAsWinRTOption.Contains(file.FileName);
 
-                            bool isBlobFileDefine = conf.BlobFileDefine != string.Empty && file.FileName.EndsWith(Project.BlobExtension, StringComparison.OrdinalIgnoreCase);
+                            bool isBlobFileDefine = conf.BlobFileDefine != string.Empty && file.FileName.Contains(Project.BlobExtension, StringComparison.OrdinalIgnoreCase);
                             bool isResourceFileDefine = conf.ResourceFileDefine != string.Empty && file.FileName.EndsWith(".rc", StringComparison.OrdinalIgnoreCase);
                             bool isCompileAsCFile = conf.ResolvedSourceFilesWithCompileAsCOption.Contains(file.FileName);
                             bool isCompileAsCPPFile = conf.ResolvedSourceFilesWithCompileAsCPPOption.Contains(file.FileName);
