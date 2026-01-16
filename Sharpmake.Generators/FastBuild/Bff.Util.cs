@@ -34,6 +34,7 @@ namespace Sharpmake.Generators.FastBuild
             public Byte UnitySectionBucket = 0; // Internal sharpmake field used to force separate unity sections in certain cases.
             public const string DefaultUnityInputPatternExtension = ".cpp";
             public const string DefaultUnityOutputPatternExtension = "Unity*.cpp";
+            public string OutputPatternExtension = ".cpp";
 
             internal string UnityFullOutputPath = string.Empty; // Path to output generated Unity files
 
@@ -333,7 +334,7 @@ namespace Sharpmake.Generators.FastBuild
                     int hashcode = unity.GetHashCode() ^ projectRelativePathHash ^ string.Join("_", unityConfigurations).GetDeterministicHashCode();
 
                     unity.UnityName = $"{project.Name}_unity_{hashcode:X8}";
-                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*.cpp";
+                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*" + unity.OutputPatternExtension;
                 }
             }
         }
@@ -390,7 +391,7 @@ namespace Sharpmake.Generators.FastBuild
                         AppendFragmentUnityName(fragmentsInfos[i], unityFragments[i], ref fragmentString);
                     }
                     unity.UnityName = project.Name + fragmentString + "_unity";
-                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*.cpp";
+                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*" + unity.OutputPatternExtension;
                 }
             }
         }
@@ -431,7 +432,7 @@ namespace Sharpmake.Generators.FastBuild
 
                     int hashcode = fragmentString.ToLowerInvariant().GetDeterministicHashCode();
                     unity.UnityName = $"{project.Name}_unity_{hashcode:X8}";
-                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*.cpp";
+                    unity.UnityOutputPattern = unity.UnityName.ToLower() + "*" + unity.OutputPatternExtension;
                 }
             }
         }

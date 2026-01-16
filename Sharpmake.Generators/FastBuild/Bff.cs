@@ -349,7 +349,7 @@ namespace Sharpmake.Generators.FastBuild
                     {
                         var scopedOptions = new List<Options.ScopedOption>();
 
-                        bool isDefaultSubConfig = s_DefaultSubConfig.Equals(subConfig);
+                        // bool isDefaultSubConfig = s_DefaultSubConfig.Equals(subConfig);
 
                         bool isUsePrecomp = subConfig.IsUsePrecomp && conf.PrecompSource != null;
                         bool isCompileAsCFile = subConfig.Languages.HasFlag(Languages.C);
@@ -375,7 +375,7 @@ namespace Sharpmake.Generators.FastBuild
                         }
 
                         // For now, this will do.
-                        if (conf.FastBuildBlobbed && isDefaultSubConfig && !isUnity)
+                        if (conf.FastBuildBlobbed && !isUnity)
                         {
                             isUnity = true;
                         }
@@ -956,7 +956,7 @@ namespace Sharpmake.Generators.FastBuild
                         string fastBuildInputExcludedFiles = FileGeneratorUtilities.RemoveLineTag;
                         {
                             Strings excludedSourceFiles = new Strings();
-                            if (isNoBlobImplicitConfig && isDefaultSubConfig)
+                            if (isNoBlobImplicitConfig)
                             {
                                 fullInputPaths.Add(context.ProjectSourceCapitalized);
                                 fullInputPaths.AddRange(project.AdditionalSourceRootPaths.Select(Util.GetCapitalizedPath));
@@ -964,7 +964,7 @@ namespace Sharpmake.Generators.FastBuild
                                 excludedSourceFiles.AddRange(filesInNonDefaultSection.Select(f => f.FileName));
                             }
 
-                            if (isDefaultSubConfig && conf.FastBuildBlobbingStrategy == Project.Configuration.InputFileStrategy.Exclude && conf.FastBuildBlobbed)
+                            if (conf.FastBuildBlobbingStrategy == Project.Configuration.InputFileStrategy.Exclude && conf.FastBuildBlobbed)
                             {
                                 // Adding the folders excluded from unity to the folders to build without unity(building each file individually)
                                 fullInputPaths.AddRange(project.SourcePathsBlobExclude.Select(Util.GetCapitalizedPath));
@@ -2166,19 +2166,9 @@ namespace Sharpmake.Generators.FastBuild
             return null;
         }
 
-        private void ConfigureUnities(IGenerationContext context, Dictionary<Project.Configuration, Dictionary<SubConfig, List<Vcxproj.ProjectFile>>> confSourceFiles)
+        private void ConfigureUnityForSubConfig(IGenerationContext context, Project.Configuration conf, SubConfig subconf, List<Vcxproj.ProjectFile> sourceFiles)
         {
-            var conf = context.Configuration;
-            // Only add unity build to non blobbed projects -> which they will be blobbed by FBuild
-            if (!conf.FastBuildBlobbed)
-                return;
-
-            if (!confSourceFiles.ContainsKey(conf)) // no source files, so no unity section
-                return;
-
-            var confSubConfigs = confSourceFiles[conf];
             var unitySubConfig = s_DefaultSubConfig;
-            var sourceFiles = confSubConfigs[unitySubConfig];
             var project = context.Project;
 
             const int spaceLength = 42;
@@ -2210,8 +2200,8 @@ namespace Sharpmake.Generators.FastBuild
             {
                 bool isBlobbed = project.SourceFilesBlobExtensions.Contains(file.FileExtension);
                 if (isBlobbed &&
-                   (conf.PrecompSource == null || !file.FileName.EndsWith(conf.PrecompSource, StringComparison.OrdinalIgnoreCase)) &&
-                   !conf.ResolvedSourceFilesBlobExclude.Contains(file.FileName))
+                        (conf.PrecompSource == null || !file.FileName.EndsWith(conf.PrecompSource, StringComparison.OrdinalIgnoreCase)) &&
+                        !conf.ResolvedSourceFilesBlobExclude.Contains(file.FileName))
                 {
                     if (conf.FastBuildBlobbingStrategy == Project.Configuration.InputFileStrategy.Include || !IsFileInInputPathList(unityInputPaths, file.FileName))
                     {
@@ -2243,13 +2233,13 @@ namespace Sharpmake.Generators.FastBuild
                 // Remove any excluded paths(exclusion has priority)
                 unityInputPaths.RemoveRange(fastbuildUnityInputExcludePathList);
                 var unityInputRelativePaths = new Strings(unityInputPaths.Select(
-                    p =>
-                    {
-                        if (ShouldMakePathRelative(p, context.Project))
+                            p =>
+                            {
+                            if (ShouldMakePathRelative(p, context.Project))
                             return CurrentBffPathKeyCombine(Util.PathGetRelative(context.ProjectDirectoryCapitalized, p, true));
-                        return p;
-                    }
-                ));
+                            return p;
+                            }
+                            ));
 
                 fastBuildUnityPaths = UtilityMethods.FBuildCollectionFormat(unityInputRelativePaths, spaceLength);
 
@@ -2278,11 +2268,11 @@ namespace Sharpmake.Generators.FastBuild
             }
 
             if (fastBuildUnityInputFiles == FileGeneratorUtilities.RemoveLineTag &&
-                fastBuildUnityPaths == FileGeneratorUtilities.RemoveLineTag)
+                    fastBuildUnityPaths == FileGeneratorUtilities.RemoveLineTag)
             {
                 // completely drop the subconfig in case it was only a unity subConfig, without any files
-                if (sourceFiles.Count == 0)
-                    confSubConfigs.Remove(unitySubConfig);
+                // if (sourceFiles.Count == 0)
+                //     confSubConfigs.Remove(unitySubConfig);
 
                 // no input path nor files => no unity
                 return;
@@ -2324,12 +2314,50 @@ namespace Sharpmake.Generators.FastBuild
                 UnitySectionBucket = conf.FastBuildUnitySectionBucket,
             };
 
+            switch(subconf.Languages)
+            {
+                case Languages.C: unityFile.OutputPatternExtension = ".c"; break;
+                case Languages.CPP: unityFile.OutputPatternExtension = ".cpp"; break;
+            }
+
             // _unities being a dictionary, a new entry will be created only
             // if the combination of options forming that unity was never seen before
             var confListForUnity = _unities.GetValueOrAdd(unityFile, new List<Project.Configuration>());
 
             // add the current conf in the list that this unity serves
             confListForUnity.Add(conf);
+
+        }
+
+        private void ConfigureUnities(IGenerationContext context, Dictionary<Project.Configuration, Dictionary<SubConfig, List<Vcxproj.ProjectFile>>> confSourceFiles)
+        {
+            var conf = context.Configuration;
+            // Only add unity build to non blobbed projects -> which they will be blobbed by FBuild
+            if (!conf.FastBuildBlobbed)
+                return;
+
+            if (!confSourceFiles.ContainsKey(conf)) // no source files, so no unity section
+                return;
+
+            var confSubConfigs = confSourceFiles[conf];
+
+            var subconfigsToRemove = new List<SubConfig>();
+            foreach(var subconfig in confSubConfigs)
+            {
+                // completely drop the subconfig in case it was only a unity subConfig, without any files
+                if (subconfig.Value.Count == 0)
+                {
+                    subconfigsToRemove.Add(subconfig.Key);
+                    continue;
+                }
+                ConfigureUnityForSubConfig(context, conf, subconfig.Key, subconfig.Value);
+            }
+
+            foreach(var subconfig in subconfigsToRemove)
+            {
+                confSubConfigs.Remove(subconfig);
+            }
+            
         }
 
         private void ResolveUnities(Project project, string projectPath)
