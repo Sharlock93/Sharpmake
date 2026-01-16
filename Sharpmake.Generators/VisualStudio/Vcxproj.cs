@@ -1390,6 +1390,7 @@ namespace Sharpmake.Generators.VisualStudio
                 {
                     using (fileGenerator.Resolver.NewScopedParameter("project", context.Project))
                     using (fileGenerator.Resolver.NewScopedParameter("config", config))
+                    using (fileGenerator.Resolver.NewScopedParameter("conf", config))
                     using (fileGenerator.Resolver.NewScopedParameter("target", config.Target))
                     {
                         var customFileBuildSteps = CombineCustomFileBuildSteps(context.ProjectDirectory, fileGenerator.Resolver, config.CustomFileBuildSteps.Where(step => step.Filter != Project.Configuration.CustomFileBuildStep.ProjectFilter.BFFOnly));
