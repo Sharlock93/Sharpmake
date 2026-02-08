@@ -341,7 +341,7 @@ namespace Sharpmake.Generators.Apple
 
             options["CustomLLDBInitFile"] = Options.PathOption.Get<Options.XCode.Scheme.CustomLLDBInitFile>(activeConfiguration);
 
-            string targetName = $"&quot;{activeConfiguration.Target.Name}&quot;";
+            string targetName = $"{activeConfiguration.Target.Name}";
             string buildImplicitDependencies = activeConfiguration.IsFastBuild ? "NO" : "YES";
             bool useBuildableProductRunnableSection = true;
             string runnableFilePath = string.Empty;
