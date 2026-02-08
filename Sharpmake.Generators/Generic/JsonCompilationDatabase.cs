@@ -183,7 +183,8 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
         private IDictionary<CompilerFlags, string> _flags;
 
         private Project.Configuration _config;
-        private string _compiler;
+        private string _compiler_cpp;
+        private string _compiler_c;
         private bool _isMicrosoft;
         private bool _isClang;
         private string _projectDirectory;
@@ -202,13 +203,22 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             Dictionary<string, CompilerSettings> compilerInfo = new Dictionary<string, CompilerSettings>();
             var ConfPlatform = PlatformRegistry.Get<IPlatformBff>(context.Configuration.Platform);
             ConfPlatform.AddCompilerSettings(compilerInfo, context.Configuration);
-
             CompilerSettings firstCompiler = compilerInfo.First().Value;
+            CompilerSettings c_compiler = firstCompiler;
+            CompilerSettings cpp_compiler = firstCompiler;
 
-            string compilerName = firstCompiler.Executable.Replace("$ExecutableRootPath$", "");
-            string compilerPath = firstCompiler.RootPath + compilerName;
+            if (_isClang) {
+                foreach (var compiler in compilerInfo) {
+                    if (compiler.Value.Executable.Contains("clang++.exe")) {
+                        cpp_compiler = compiler.Value;
+                    } else if(compiler.Value.Executable.Contains("clang.exe")) {
+                        c_compiler = compiler.Value;
+                    }
+                }
+            }
 
-            _compiler = compilerPath;
+            _compiler_cpp = cpp_compiler.RootPath + cpp_compiler.Executable.Replace("$ExecutableRootPath$", "");
+            _compiler_c   = c_compiler.RootPath   + c_compiler.Executable.Replace("$ExecutableRootPath$", "");
             _config = context.Configuration;
             _outputExtension = _isMicrosoft ? ".obj" : ".o";
             _outputDirectory = _config.IntermediatePath;
@@ -387,7 +397,11 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             string precompArgument;
             var args = new List<string>();
 
-            args.Add(_compiler);
+            if(inputFile.EndsWith(".c")) {
+                args.Add(_compiler_c);
+            } else {
+                args.Add(_compiler_cpp);
+            }
 
             if (_config.PrecompSource != null && inputFile.EndsWith(_config.PrecompSource, StringComparison.OrdinalIgnoreCase))
             {
