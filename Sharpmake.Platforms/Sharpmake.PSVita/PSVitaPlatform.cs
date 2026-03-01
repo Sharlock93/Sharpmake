@@ -4,6 +4,10 @@
 using Sharpmake.Generators;
 using Sharpmake.Generators.FastBuild;
 using Sharpmake.Generators.VisualStudio;
+using System;
+using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
 
 namespace Sharpmake.PSVita
 {
