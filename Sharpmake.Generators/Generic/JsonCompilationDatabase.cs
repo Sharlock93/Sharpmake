@@ -144,7 +144,9 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             "IntermediateDirectory",
             "AdditionalDependencies",
             "AdditionalResourceIncludeDirectories",
-            "TreatWarningAsError"
+            "TreatWarningAsError",
+            "SwiftOptimizationLevel",
+            "SwiftModuleName"
         };
 
         private static readonly string[] s_multilineArgumentKeys = new[] {
@@ -209,9 +211,9 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
 
             if (_isClang) {
                 foreach (var compiler in compilerInfo) {
-                    if (compiler.Value.Executable.Contains("clang++.exe")) {
+                    if (compiler.Value.Executable.Contains("clang++")) {
                         cpp_compiler = compiler.Value;
-                    } else if(compiler.Value.Executable.Contains("clang.exe")) {
+                    } else if(compiler.Value.Executable.Contains("clang")) {
                         c_compiler = compiler.Value;
                     }
                 }

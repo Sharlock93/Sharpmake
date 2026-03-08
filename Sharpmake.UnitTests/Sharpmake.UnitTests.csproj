@@ -4,6 +4,7 @@
 
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
