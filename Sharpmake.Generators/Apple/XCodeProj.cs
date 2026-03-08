@@ -999,11 +999,22 @@ popd";
                     var cmd = $"{relativeBuildStep.Executable} {relativeBuildStep.ExecutableArguments}";
                     var desc = relativeBuildStep.Description;
 
-                    
-                    var shellScriptBuildPhase = new ProjectShellScriptBuildPhase(desc, 2147483647)
+                    string script = "";
+                    using (resolver.NewScopedParameter("script", cmd))
                     {
-                        script = cmd
+                        script = resolver.Resolve(XCodeProj.Template.CustomBuildFileStepScript);
+                    }
+
+                    string build_identifier = desc == "" ? $"{buildEvent}_{conf.Name}" : $"{desc}_{conf.Name}";
+                    var shellScriptBuildPhase = new ProjectShellScriptBuildPhase(build_identifier, 2147483647)
+                    {
+                        script = script,
+                        InputFiles = {relativeBuildStep.KeyInput},
+                        OutputFiles = {relativeBuildStep.Output}
                     };
+
+                    shellScriptBuildPhase.InputFiles.AddRange(relativeBuildStep.AdditionalInputs);
+
                     _projectItems.Add(shellScriptBuildPhase);
                     if (!shellScriptPhases.ContainsKey(xCodeTargetName))
                     {
@@ -2360,14 +2371,35 @@ popd";
 
             public string script;
 
+            public UniqueList<string> InputFiles { get; }
+            public UniqueList<string> OutputFiles { get; }
+
+            public override void GetAdditionalResolverParameters(ProjectItem item, Resolver resolver, ref Dictionary<string, string> resolverParameters)
+            {
+                base.GetAdditionalResolverParameters(item, resolver, ref resolverParameters);
+
+                string inputString = RemoveLineTag;
+                string outputString = RemoveLineTag;
+
+                inputString = XCodeUtil.XCodeFormatList(InputFiles, 3, keepParan: true);
+                outputString = XCodeUtil.XCodeFormatList(OutputFiles, 3, keepParan: true);
+
+                resolverParameters.Add("inputFiles", inputString);
+                resolverParameters.Add("outputFiles", outputString);
+            }
+
             public ProjectShellScriptBuildPhase(uint buildActionMask)
                 : base(ItemSection.PBXShellScriptBuildPhase, "ShellScripts", buildActionMask)
             {
+                InputFiles = new UniqueList<string>();
+                OutputFiles = new UniqueList<string>();
             }
 
             public ProjectShellScriptBuildPhase(string name, uint buildActionMask)
                 : base(ItemSection.PBXShellScriptBuildPhase, name, buildActionMask)
             {
+                InputFiles = new UniqueList<string>();
+                OutputFiles = new UniqueList<string>();
             }
         }
 

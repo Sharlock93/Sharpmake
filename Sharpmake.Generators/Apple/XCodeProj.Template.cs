@@ -101,9 +101,9 @@ namespace Sharpmake.Generators.Apple
 			buildActionMask = 2147483647;
 			files = ();
 			inputFileListPaths = ();
-			inputPaths = ();
+			inputPaths = [inputFiles];
 			outputFileListPaths = ();
-			outputPaths = ();
+			outputPaths = [outputFiles];
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = ""[item.script]"";
@@ -494,6 +494,8 @@ namespace Sharpmake.Generators.Apple
 		};
 "               }
             };
+
+            public static string CustomBuildFileStepScript = @"if \[\[ \""$CONFIGURATION\"" != \""[config.Name]\"" \]\]; then exit; fi\n[script]";
 
             public static string CommandLineArgumentsBegin =
 @"      <CommandLineArguments>

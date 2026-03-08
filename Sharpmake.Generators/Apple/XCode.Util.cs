@@ -21,13 +21,13 @@ namespace Sharpmake.Generators.Apple
             return $"{item}";
         }
 
-        public static string XCodeFormatList(IEnumerable<string> items, int nbIndent, bool forceQuotes = false)
+        public static string XCodeFormatList(IEnumerable<string> items, int nbIndent, bool forceQuotes = false, bool keepParan = false)
         {
             int nbItems = items.Count();
             if (nbItems == 0)
                 return forceQuotes ? XCodeFormatSingleItem(string.Empty, true) : FileGeneratorUtilities.RemoveLineTag;
 
-            if (nbItems == 1)
+            if (nbItems == 1 && !keepParan)
                 return XCodeFormatSingleItem(items.First(), forceQuotes);
 
             // Write all selected items.
