@@ -154,6 +154,20 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             "ManifestInputs"
         };
 
+        private static readonly string[] s_ignoreCppfileArgs = new[] {
+            "CLanguageStd",
+            "ClangCLanguageStd",
+            "CLanguageStd",
+            "ClangCLanguageStd"
+        };
+
+        private static readonly string[] s_ignoreCfileArgs = new[] {
+            "CppLanguageStandard",
+            "CppLanguageStd",
+            "ClangCppLanguageStandard",
+            "ClangCppLanguageStd"
+        };
+
         private enum CompilerFlags
         {
             OutputFile,
@@ -196,6 +210,7 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
         private string _usePrecompArgument;
         private string _createPrecompArgument;
         private List<string> _arguments = new List<string>();
+        public IDictionary<string, IList<string>> _commandlineValidOptions;
 
         public CompileCommandFactory(CompileCommandGenerationContext context)
         {
@@ -255,7 +270,7 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             // AdditionalCompilerOptions are referenced from Options in the bff template.
             context.CommandLineOptions.Add(AdditionalOptionsKey, context.Options[AdditionalOptionsKey]);
 
-            var validOptions = context.CommandLineOptions
+            _commandlineValidOptions = context.CommandLineOptions
                 .Where(IsValidOption)
                 .ToDictionary(kvp => kvp.Key, FlattenMultilineArgument);
 
@@ -263,11 +278,11 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             if (_isMicrosoft)
             {
                 // Required to avoid errors in VC headers.
-                var value = validOptions.ContainsKey("ExceptionHandling") ? 1 : 0;
+                var value = _commandlineValidOptions.ContainsKey("ExceptionHandling") ? 1 : 0;
                 _arguments.Add($"{platformDefineSwitch}_HAS_EXCEPTIONS={value}");
             }
 
-            _arguments.AddRange(validOptions.Values.SelectMany(x => x));
+            // _arguments.AddRange(validOptions.Values.SelectMany(x => x));
 
             SelectPreprocessorDefinitions(context, platformDefineSwitch);
             FillIncludeDirectoriesOptions(context);
@@ -280,6 +295,12 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
             {
                 valid = valid && !option.Value.StartsWith("/");
             }
+            return valid;
+        }
+
+        private bool IsValidFileOption(KeyValuePair<string, IList<string>> option, string[] ignoredFlags)
+        {
+            bool valid = !ignoredFlags.Contains(option.Key);
             return valid;
         }
 
@@ -392,17 +413,18 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
         }
 
         // TODO: Consider sub-configurations (file specific)
-
         public CompileCommand CreateCompileCommand(string inputFile)
         {
             string outputFile;
             string precompArgument;
             var args = new List<string>();
 
-            if(inputFile.EndsWith(".c")) {
-                args.Add(_compiler_c);
-            } else {
+            bool isCpp = inputFile.EndsWith(".cpp");
+
+            if(isCpp) {
                 args.Add(_compiler_cpp);
+            } else {
+                args.Add(_compiler_c);
             }
 
             if (_config.PrecompSource != null && inputFile.EndsWith(_config.PrecompSource, StringComparison.OrdinalIgnoreCase))
@@ -433,15 +455,23 @@ namespace Sharpmake.Generators.JsonCompilationDatabase
                 outputFile = Path.ChangeExtension(Path.Combine(_outputDirectory, Path.GetFileName(inputFile)), _outputExtension);
             }
 
+            List<string> args_copy = new List<string>(_arguments);
+
+            var validOptions = _commandlineValidOptions
+                .Where( a => IsValidFileOption(a, isCpp ? s_ignoreCppfileArgs : s_ignoreCfileArgs ))
+                .ToDictionary(kvp => kvp.Key);
+
+            args_copy.AddRange(validOptions.Values.SelectMany(x => x.Value));
+
             args.Add(inputFile);
             args.Add(string.Format(_flags[CompilerFlags.OutputFile], outputFile));
 
             if (!string.IsNullOrEmpty(precompArgument))
                 args.Add(precompArgument);
 
-            var command = string.Join(" ", args) + " " + string.Join(" ", _arguments);
+            var command = string.Join(" ", args) + " " + string.Join(" ", args_copy);
 
-            args.AddRange(_arguments);
+            args.AddRange(args_copy);
 
             // Remove unescaped double quote from arguments list (but keep them for the full command line).
             // This is in fact what will do the shell when it will parse the full command line and give the argv/argc to the program.
