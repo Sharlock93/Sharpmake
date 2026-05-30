@@ -22,8 +22,7 @@ jobs:
       os: ${{ matrix.os }}
       framework: ${{ matrix.framework }}
       configuration: ${{ matrix.configuration }}
-      run_unit_tests: false
-      run_regression_tests: false
+      run_tests: false
 
   release:
     needs: [builds]
@@ -42,7 +41,7 @@ jobs:
         run: .github\Get-Changelog.ps1 ${{ github.ref_name }} > changelog.md
 
       - name: 'Download workflow artifacts'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: downloads
 
@@ -57,7 +56,7 @@ jobs:
         working-directory: downloads
 
       - name: 'Create GitHub release'
-        uses: ncipollo/release-action@v1.20.0
+        uses: ncipollo/release-action@v1.21.0
         with:
           bodyFile: 'changelog.md'
           artifacts: 'downloads/Sharpmake-net8.0-*-${{ github.ref_name }}.zip'
